@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import datetime
 from fbprophet import Prophet
 
+# my functions
+from error_split import simple_splitter
+
 def train_prophet(df):
     """train FB prophet model on DF 
     with 'ds' 'y' format
@@ -20,9 +23,13 @@ def predict_horizon(m, horizon=28):
     """
     dffuture = m.make_future_dataframe(periods=horizon)
     dfforecast = m.predict(dffuture)
-
-
+    return dfforecast
 
 if __name__ == '__main__':
-# open pickled dataframe from data2frame.py
+    # this block used for testing
+    # open pickled dataframe from data2frame.py
     dfday = pd.read_pickle('../../data/time_ecom/dfday.pkl')
+    fb_train, fb_test = simple_splitter(dfday)
+
+    fbmod = train_prophet(fb_train)
+    forecast_28days = predict_horizon(fbmod, horizon=28)

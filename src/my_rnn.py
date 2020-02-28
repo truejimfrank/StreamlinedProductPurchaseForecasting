@@ -9,9 +9,10 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout, Activation
 from tensorflow.keras.layers import LSTM
+import tensorflow as tf
 
 # my functions
-from error_split import simple_splitter
+from error_split import simple_splitter, mape, plot_results
 
 np.random.seed(9)
 
@@ -59,7 +60,7 @@ def lstm_compile(layer_control=[14,52, 1], dropo=False):
     """layer_control= [seq_len, #hidden_neurons, output_dim]
     2-layer LSTM RNN model
     """
-    drop_percent = 0.2
+    drop_percent = 0.4
     model = Sequential()
 
     model.add(LSTM(
@@ -81,7 +82,10 @@ def lstm_compile(layer_control=[14,52, 1], dropo=False):
     model.add(Activation("linear"))
 
     start = time.time()
-    model.compile(loss="mse", optimizer="rmsprop") # or try 'adam'
+    # loss="mse" to start // mape, poisson(can break solver), logcosh(flattens)
+    # mean_absolute_error
+    opti = tf.keras.optimizers.RMSprop(learning_rate=0.0002)  # default is 0.001
+    model.compile(loss="mse", optimizer=opti) # try 'rmsprop' or 'adam'
     print("Model Compile Time : ", time.time() - start)
     return model
 
@@ -97,18 +101,9 @@ def standard_predict(model, scaler, X_test):
     y_hat = scaler.inverse_transform(y_hat)
     return y_hat
 
-
-
-def predictions_run_plot(X_test, y_test):
-    predicted = lstm.predict_point_by_point(model, X_test)
-    plot_results(predicted, y_test, 'Sine_wave-predict_one_point_ahead')
-    # unsure yet if I need the sequence predict
-    predicted_full = lstm.predict_sequence_full(model, X_test, seq_len)
-    plot_results(predicted_full, y_test, 'Sine_wave-predict_full_sequence_from_start_seed') 
-
 if __name__ == '__main__':
     # this block used for testing
-    rnn_seq_len = 7
+    rnn_seq_len = 8
     dfday = pd.read_pickle('../../data/time_ecom/dfday.pkl')
 
     fullarray, thescaler = scale_df2array(dfday)
@@ -121,10 +116,22 @@ if __name__ == '__main__':
 
     # ((13, 14, 1), 'Xshape  :  yshape', (13, 1)) IF USING testshort
     # ((28, 14, 1), 'Xshape  :  yshape', (28, 1)) IF COMPING FOR seq_len 
-    X_test, Y_test = array2rnnformat(test, seq_len=rnn_seq_len, do_shuffle=False)
+    X_test, y_test = array2rnnformat(test, seq_len=rnn_seq_len, do_shuffle=False)
+    y_test = thescaler.inverse_transform(y_test)
 
-    layers4lstm = [14, 52, 1]
-    themodel = lstm_compile(layer_control=layers4lstm, dropo=False)
-    lstm_fit(themodel, X_train, y_train, ep=1, batch=14)
+    # layers4lstm = [rnn_seq_len, 50, 1]
+    layers4lstm = [200, 200, 1]
+    themodel = lstm_compile(layer_control=layers4lstm, dropo=True)
+    lstm_fit(themodel, X_train, y_train, ep=9, batch=99)
     themodel.summary()
-    
+
+    y_hat = standard_predict(themodel, thescaler, X_test)
+    print(y_hat.shape[0], " : len of prediction array")
+    # for row in y_hat:
+    #     print(row[0])
+    error = round(mape(y_test, y_hat), 1)
+    print("mape RNN : ", error)
+
+    # rnntitle = 'RNN forecast with sequence={0} error={1}%'.format(str(rnn_seq_len), error)
+    rnntitle = 'RNN forecast with {0}%'.format(error) + ' error'
+    plot_results(y_test, y_hat, rnntitle)

@@ -3,6 +3,7 @@
 import pandas as pd 
 import numpy as np
 import datetime
+import time
 # import matplotlib.pyplot as plt
 from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
@@ -50,26 +51,80 @@ def array2rnnformat(scaled_array, seq_len=14, do_shuffle=True):
     X_lstm = np.reshape(X_lstm, (X_lstm.shape[0], X_lstm.shape[1], 1))
     return X_lstm, y_lstm
 
-
 # return_sequences: Boolean. Whether to return the last output 
 # in the output sequence, or the full sequence.
 # Used to keep (x,y,z) shape for next LSTM layer
 
+def lstm_compile(layer_control=[14,52, 1], dropo=False):
+    """layer_control= [seq_len, #hidden_neurons, output_dim]
+    2-layer LSTM RNN model
+    """
+    drop_percent = 0.2
+    model = Sequential()
+
+    model.add(LSTM(
+        units = layer_control[0],
+        return_sequences=True))
+    # model.add(Activation("tanh"))  UNNEEDED LSTM has its own activation
+    if dropo:
+        model.add(Dropout(drop_percent))
+
+    model.add(LSTM(
+        units=layer_control[1],
+        return_sequences=False))
+    # model.add(Activation("tanh"))  UNNEEDED LSTM has its own activation
+    if dropo:
+        model.add(Dropout(drop_percent))
+
+    model.add(Dense(
+        units=layer_control[2]))
+    model.add(Activation("linear"))
+
+    start = time.time()
+    model.compile(loss="mse", optimizer="rmsprop") # or try 'adam'
+    print("Model Compile Time : ", time.time() - start)
+    return model
+
+def lstm_fit(model, X_train, y_train, ep=1, batch=14):
+    """fit the model to the training data. record processing time."""
+    start = time.time()
+    model.fit(X_train, y_train, epochs=ep, batch_size=batch)
+    print('Model fit duration : ', time.time() - start)
+
+def standard_predict(model, scaler, X_test):
+    """input X data must have same seq_len as fitted model"""
+    y_hat = model.predict(X_test)
+    y_hat = scaler.inverse_transform(y_hat)
+    return y_hat
+
+
+
+def predictions_run_plot(X_test, y_test):
+    predicted = lstm.predict_point_by_point(model, X_test)
+    plot_results(predicted, y_test, 'Sine_wave-predict_one_point_ahead')
+    # unsure yet if I need the sequence predict
+    predicted_full = lstm.predict_sequence_full(model, X_test, seq_len)
+    plot_results(predicted_full, y_test, 'Sine_wave-predict_full_sequence_from_start_seed') 
 
 if __name__ == '__main__':
     # this block used for testing
-    rnn_seq_len = 14
+    rnn_seq_len = 7
     dfday = pd.read_pickle('../../data/time_ecom/dfday.pkl')
 
     fullarray, thescaler = scale_df2array(dfday)
-    # ((109, 1), 'train   :   test', (28, 1))
-    train, test = simple_splitter(fullarray)
+    # train, test = simple_splitter(fullarray, test_len=28)
+    train, test = simple_splitter(fullarray, test_len=28 + 1 + rnn_seq_len)
 
-    # ((94, 14, 1), 'Xshape  :  yshape', (94, 1))
-    X_train, y_train = array2rnnformat(train)
+    # shapes are with rnn_seq_len = 14
+    # ((79, 14, 1), 'Xshape  :  yshape', (79, 1))
+    X_train, y_train = array2rnnformat(train, seq_len=rnn_seq_len)
 
-    # ((13, 14, 1), 'Xshape  :  yshape', (13, 1))
-    X_test, Y_test = array2rnnformat(test)
+    # ((13, 14, 1), 'Xshape  :  yshape', (13, 1)) IF USING testshort
+    # ((28, 14, 1), 'Xshape  :  yshape', (28, 1)) IF COMPING FOR seq_len 
+    X_test, Y_test = array2rnnformat(test, seq_len=rnn_seq_len, do_shuffle=False)
 
-
-    # model.summary()
+    layers4lstm = [14, 52, 1]
+    themodel = lstm_compile(layer_control=layers4lstm, dropo=False)
+    lstm_fit(themodel, X_train, y_train, ep=1, batch=14)
+    themodel.summary()
+    

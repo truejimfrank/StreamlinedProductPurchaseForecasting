@@ -66,20 +66,20 @@ def lstm_compile(layer_control=[14,52, 1], dropo=False):
     model.add(LSTM(
         units = layer_control[0],
         return_sequences=True))
-    # model.add(Activation("tanh"))  UNNEEDED LSTM has its own activation
+    # model.add(Activation("tanh"))  # UNNEEDED LSTM has its own activation
     if dropo:
         model.add(Dropout(drop_percent))
 
     model.add(LSTM(
         units=layer_control[1],
         return_sequences=False))
-    # model.add(Activation("tanh"))  UNNEEDED LSTM has its own activation
+    # model.add(Activation("tanh"))  # UNNEEDED LSTM has its own activation
     if dropo:
         model.add(Dropout(drop_percent))
 
     model.add(Dense(
         units=layer_control[2]))
-    model.add(Activation("linear"))
+    model.add(Activation("linear")) # "linear"
 
     start = time.time()
     # loss="mse" to start // mape, poisson(can break solver), logcosh(flattens)

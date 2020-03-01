@@ -33,7 +33,8 @@ def daily_purchases_plot(dfday, png_path='../img/default.png'):
     plt.savefig(png_path, dpi=100)
 
 def events2day(dfevents):
-    """takes raw DF from events.csv and outputs daily purchases DF"""
+    """takes raw DF from events.csv and outputs daily purchases DF
+    dfday formatted for FB prophet: 'ds', 'y'  """
     dfevents = unix_time_convert(dfevents)
     col_sel = ['timestamp', 'visitorid', 'itemid', 'event']
     # select rows where event = transaction (22457 results)
@@ -50,10 +51,74 @@ def events2day(dfevents):
     dfday = dfday.iloc[1:-1]
     return dfday
 
+def format_df_cat_pickle(cat_prod):
+    """make df_cat DataFrame for joining to dfevents
+    load category DataFrame made in item_categories.py """
+    cat_prod['value'] = cat_prod['value'].astype('int32')
+    cat_prod.rename(columns={'value':'category'}, inplace=True)
+    return cat_prod
+
+def join_categories(dfevents, dfcat):
+    """join category column to raw events DF
+    basic formatting of raw dfevents
+    df_cat comes from the load_format_df_cat function
+    """
+    dfevents = unix_time_convert(dfevents)
+    dfevents = dfevents[dfevents['event'] == 'transaction'].sort_values('timestamp')
+    dfcat = dfevents.join(dfcat.set_index('itemid'), on='itemid')
+    dfcat['category'] = dfcat['category'].fillna(-1)
+    dfcat['category'] = dfcat['category'].astype('int32')
+    # 23838 - 22547 = 1291 extra records from items with 2 categories
+    return dfcat.drop_duplicates()
+
+def cat2day(dfcat, cat_int, fb=False):
+    """takes dfcat 23838 and outputs daily purchases DF
+    choose cat_int to only count that category ID
+    """
+    # filter category
+    dfcat = dfcat[dfcat['category'] == cat_int].sort_values('timestamp')
+    # rename for working with FB prophet
+    dfcat.rename(columns={'event':'y'}, inplace=True)
+    dfcat.rename(columns={'timestamp':'ds'}, inplace=True)
+    # select columns for easier AGG
+    dfcat = dfcat[['ds', 'y', 'category']]
+    # resample to daily frequency and count transactions
+    dfday = dfcat.resample('D', on="ds").count() 
+    # make and join 139 df to pad missing head and tail
+    dr = pd.date_range(start='2015-05-02', end='2015-09-17', freq='D')
+    dfmake = pd.DataFrame(index=dr)
+    dfmake = dfmake.join(dfday)
+    # reset category to be correct
+    dfmake['category'] = cat_int
+    dfmake['y'] = dfmake['y'].fillna(0)
+    dfmake['ds'] = dfmake['ds'].fillna(0)
+    dfmake = dfmake.astype('int32')  #  the join made values floats
+    # make ds, y format for FB
+    if fb:  
+        dfmake = dfmake[['y']].reset_index().rename(columns={'index': 'ds'})
+    # remove partial days ( from 139 rows to 137 )
+    dfmake = dfmake.iloc[1:-1]
+    return dfmake
+
+# TESTING, REMOVE WHEN FINISHED
+# index 2 is the -1 'blank' category
+top6cat = list(dfcat['category'].value_counts().index[[0,1,3,4,5,6]])
+for cat in top6cat:
+    dftest = cat2day(dfcat, cat)
+    num_zero = dftest[dftest['y'] == 0].shape[0]
+    print(cat, dftest.shape, num_zero)
 
 if __name__ == '__main__':
 
     dfevents = pd.read_csv('../../data/ecommerce/events.csv')
-    dfday = events2day(dfevents)
+    # dfday = events2day(dfevents)
     # daily_purchases_plot(dfday, png_path='../img/default.png')
     # dfday.to_pickle('../../data/time_ecom/dfday.pkl')
+
+# create and save DataFrame with "category" column
+    dfcat = pd.read_pickle('../../data/ecommerce/prod_with_cat.pkl', compression='zip')
+    dfcat = format_df_cat_pickle(dfcat)
+    # 1242 unique category ID's
+    dfcat = join_categories(dfevents, dfcat)
+    print(dfcat.head())
+    dfcat.to_pickle('../../data/time_ecom/dfcat.pkl', compression='zip')

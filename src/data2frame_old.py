@@ -32,10 +32,9 @@ def daily_purchases_plot(dfday, png_path='../img/default.png'):
     plt.tight_layout(pad=1)
     plt.savefig(png_path, dpi=100)
 
-def events2day(dfev):
+def events2day(dfevents):
     """takes raw DF from events.csv and outputs daily purchases DF
     dfday formatted for FB prophet: 'ds', 'y'  """
-    dfevents = dfev.copy()
     dfevents = unix_time_convert(dfevents)
     col_sel = ['timestamp', 'visitorid', 'itemid', 'event']
     # select rows where event = transaction (22457 results)
@@ -55,10 +54,9 @@ def events2day(dfev):
 def format_df_cat_pickle(cat_prod):
     """make df_cat DataFrame for joining to dfevents
     load category DataFrame made in item_categories.py """
-    df = cat_prod.copy()
-    df['value'] = df['value'].astype('int32')
-    df.rename(columns={'value':'category'}, inplace=True)
-    return df.copy()
+    cat_prod['value'] = cat_prod['value'].astype('int32')
+    cat_prod.rename(columns={'value':'category'}, inplace=True)
+    return cat_prod.copy()
 
 def join_categories(dfevents, dfcat, dftree):
     """ Input: raw dfevents, dfcat from format function, raw dftree
@@ -66,8 +64,7 @@ def join_categories(dfevents, dfcat, dftree):
     join parent column
     formatting of data into desired types
     """
-    df = dfevents.copy()
-    df = unix_time_convert(df)
+    df = unix_time_convert(dfevents)
     df = df[df['event'] == 'transaction'].sort_values('timestamp')
     joined = df.join(dfcat.set_index('itemid'), on='itemid')
     joined['category'] = joined['category'].fillna(-1) # copy slice error??
@@ -83,44 +80,34 @@ def join_categories(dfevents, dfcat, dftree):
     joined['parent'] = joined['parent'].astype('int32')
     return joined.copy()
 
-def parent2day(df, select_int, par=True, fb=False):
-    """takes DF 23838 with category and parent columns
-    outputs daily purchases DF
-    select_int is the desired category or parent to be selected
-    par=True filters the parent column  //  par=False filters the category column
-    fb option toggles 'ds' & 'y' output format for FBprophet
+def cat2day(dfcat, cat_int, fb=False):
+    """takes dfcat 23838 and outputs daily purchases DF
+    choose cat_int to only count that category ID
     """
-    copy = df.copy()
-    # rename for working with FB prophet
-    copy.rename(columns={'event':'y'}, inplace=True)
-    copy.rename(columns={'timestamp':'ds'}, inplace=True)
-    # filter parent
-    if par:
-        copy = copy[copy['parent'] == select_int].sort_values('ds')
     # filter category
-    else:
-        copy = copy[copy['category'] == select_int].sort_values('ds')
+    dfcat = dfcat[dfcat['category'] == cat_int].sort_values('timestamp')
+    # rename for working with FB prophet
+    dfcat.rename(columns={'event':'y'}, inplace=True)
+    dfcat.rename(columns={'timestamp':'ds'}, inplace=True)
     # select columns for easier AGG
-    copy = copy[['ds', 'y', 'category', 'parent']]
+    dfcat = dfcat[['ds', 'y', 'category']]
     # resample to daily frequency and count transactions
-    dfday = copy.resample('D', on="ds").count() 
+    dfday = dfcat.resample('D', on="ds").count() 
     # make and join 139 df to pad missing head and tail
     dr = pd.date_range(start='2015-05-02', end='2015-09-17', freq='D')
     dfmake = pd.DataFrame(index=dr)
     dfmake = dfmake.join(dfday)
-    # reset category/parent to be correct
-    if par:
-        dfmake['parent'] = select_int
-    else:
-        dfmake['category'] = select_int
-    dfmake = dfmake.fillna(0)
+    # reset category to be correct
+    dfmake['category'] = cat_int
+    dfmake['y'] = dfmake['y'].fillna(0)
+    dfmake['ds'] = dfmake['ds'].fillna(0)
     dfmake = dfmake.astype('int32')  #  the join made values floats
     # make ds, y format for FB
     if fb:  
         dfmake = dfmake[['y']].reset_index().rename(columns={'index': 'ds'})
     # remove partial days ( from 139 rows to 137 )
     dfmake = dfmake.iloc[1:-1]
-    return dfmake.copy()
+    return dfmake
 
 # topparent = [561, 955, 105, 500, 1095, 805]
 

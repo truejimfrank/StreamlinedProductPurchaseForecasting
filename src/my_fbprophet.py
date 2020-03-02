@@ -1,50 +1,155 @@
 import pandas as pd
 import numpy as np
-# import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+import matplotlib
 import datetime
 from fbprophet import Prophet
+from fbprophet.plot import add_changepoints_to_plot, plot_weekly
+from sklearn.metrics import mean_absolute_error
 
 # my functions
 from error_split import simple_splitter, mape
+from data2frame import parent2day # (df, select_int, par=True, fb=False)
 
-
-def train_prophet(df):
-    """train FB prophet model on DF 
-    with 'ds' 'y' format
-    changepoint_prior_scale default is 0.05
-    increasing this parameter gives the trend more flexibility
-    returns fitted FB prophet model
+class PurchaseForecast(object):
+    """Class to initialize and run FB prophet model on 
+    daily purchases in different product categories
     """
-    m = Prophet(changepoint_prior_scale=0.05)
-    return m.fit(df)
+    def __init__(self, parent, horizon, df_daily):
+        """ parent is integer name of the product category to select
+        horizon is future prediction horizon in days : integer """
+        self.parent = parent
+        self.horizon = horizon
+        self.df_daily = df_daily
+    # list of target values to hold in object
+    #   parent, horizon, df_daily, model, shf_model, forecast,
+    #   mape_error, abs_error, percent_growth, low_growth, high_growth
+    #   y_true, y_hat  ( from shf error calc )
+    def fit(self):
+        # runs all the class functions to store values in object
+        self._prophet_fit(prior=0.05)
+        self._prophet_predict()
+        self._shf()
+        self._shf_mape()
+        self._growth()
+    
+    def mape(self, y_true, y_pred):
+        # mean absolute percent error
+        # watch out for divide by zero errors with this one
+        return round(np.mean(np.abs((y_true - y_pred) / y_true)) * 100., 1)
 
-def predict_horizon(m, horizon=28):
-    """use fitted fb model to create forecast DF
-    forecast is periods past training data
-    """
-    # dffuture has 'ds' column only
-    dffuture = m.make_future_dataframe(periods=horizon)
+    def _prophet_fit(self, prior=0.05):
+        self.model = Prophet(changepoint_prior_scale=prior)
+        self.shf_model = Prophet(changepoint_prior_scale=prior)
+        print(f"start fit shf model parent={self.parent}")
+        self.shf_model.fit(self.df_daily[:-self.horizon])
+        print(f"start fit full model parent={self.parent}")
+        self.model.fit(self.df_daily)
+        print(f"finished fitting parent={self.parent}")
+        
+    def _prophet_predict(self):
+        self.future = self.model.make_future_dataframe(periods=self.horizon)
+        self.forecast = self.model.predict(self.future)
+        
+    def _shf_mape(self):
+        self.y_true = self.df_daily.iloc[-self.horizon:, -1].values
+        self.shf_forecast = self.shf_model.predict(self.future[:-self.horizon])
+        self.y_hat = self.shf_forecast.iloc[-self.horizon:, -1].values
+        self.mape_error = self.mape(self.y_true, self.y_hat)
+        
+    def _shf(self):
+        self.y_true = self.df_daily.iloc[-self.horizon:, -1].values
+        self.shf_forecast = self.shf_model.predict(self.future[:-self.horizon])
+        self.y_hat = self.shf_forecast.iloc[-self.horizon:, -1].values
+        self.abs_error = round(mean_absolute_error(self.y_true, self.y_hat) , 1)
+        
+    def _growth(self):
+        # 'trend' is the column to use in forecast
+        #  also 'yhat_lower', 'yhat_upper'
+        start = self.forecast['trend'].values[-1 - self.horizon]
+        mid = self.forecast['trend'].values[-1]
+        low = self.forecast['yhat_lower'].values[-1]
+        high = self.forecast['yhat_upper'].values[-1]
+        self.percent_growth = round(((mid - start) / start) * 100. , 1)
+        self.low_growth = round(((low - start) / start) * 100. , 1)
+        self.high_growth = round(((high - start) / start) * 100. , 1)
+    # END OF CLASS
+
+def first_test_run(df_daily, thehorizon=28):
+    """code for initial testing"""
+    fb_train, fb_test = simple_splitter(df_daily, test_len=thehorizon)
+    m = Prophet()
+    m.fit(fb_train)
+    dffuture = m.make_future_dataframe(periods=thehorizon)
     dfforecast = m.predict(dffuture)
-    """ fb forecast columns
-        ['ds', 'trend', 'yhat_lower', 'yhat_upper', 'trend_lower',
-       'trend_upper', 'additive_terms', 'additive_terms_lower',
-       'additive_terms_upper', 'weekly', 'weekly_lower', 'weekly_upper',
-       'multiplicative_terms', 'multiplicative_terms_lower',
-       'multiplicative_terms_upper', 'yhat']"""
-    y_hat = dfforecast.iloc[-horizon: , -1].values
-    return y_hat
+    y_hat = dfforecast.iloc[-thehorizon: , -1].values
+    y_test = fb_test['y'].values
+    print("mape FBprophet : ", mape(y_test, y_hat))
 
+def select_id_array(df, thresh=250):
+    """select parentid integers with sufficient
+    purchase count and put them in array 
+    default 250 selects 30 parent categories """
+    parent_counts = df['parent'].value_counts()
+    return parent_counts[parent_counts >= thresh].index.values
+
+def daily_df_dict(df, id_array):
+    """ runs the parent2day function to create DF for modeling
+    input dfcatparent from pickle
+    id_array is array of parentid int numbers
+    """
+    df_dict = {}
+    for parent in id_array:
+        df_dict[parent] = parent2day(df, parent, par=True, fb=True)
+    return df_dict
+
+def models_dict(dict_of_df, horiz=28):
+    """Creates dictionary of fitted PurchaseForecast class objects"""
+    return_dict = {}
+    for key, data in dict_of_df.items():
+        forecast_object = PurchaseForecast(key, horiz, data)
+        forecast_object.fit()
+        return_dict[key] = forecast_object
+    return return_dict
+
+def print_results(models_dict):
+    """ Options for printing in PurchaseForecast
+      parent, horizon, df_daily, model, shf_model, forecast,
+      mape_error, abs_error, percent_growth, low_growth, high_growth
+      y_true, y_hat  ( from shf error calc )
+    """
+    for parent, obj in models_dict.items():
+        print(obj.parent, " : parent")
+        print(obj.horizon, " horizon : abs error", obj.abs_error)
+        print("percent growth from trend : ", obj.percent_growth, " : low, high -> ",
+                                            obj.low_growth, obj.high_growth)
+
+""" fb forecast columns
+    ['ds', 'trend', 'yhat_lower', 'yhat_upper', 'trend_lower',
+    'trend_upper', 'additive_terms', 'additive_terms_lower',
+    'additive_terms_upper', 'weekly', 'weekly_lower', 'weekly_upper',
+    'multiplicative_terms', 'multiplicative_terms_lower',
+    'multiplicative_terms_upper', 'yhat']"""
 
 if __name__ == '__main__':
     # this block used for testing
     # open pickled dataframe from data2frame.py
-    dfday = pd.read_pickle('../../data/time_ecom/dfday.pkl')
-    thehorizon = 28
-    fb_train, fb_test = simple_splitter(dfday, test_len=thehorizon)
+    df = pd.read_pickle('../../data/time_ecom/dfcatparent.pkl', compression='zip')
+    top6 = np.array([561, 955, 105, 500, 1095, 805])
+    top30 = select_id_array(df)
+    prediction_horizon = 28  #  DAYS
+    # choose True here if you want to run full top30 comparison, takes a minute
+    select_top30 = False
 
-    fbmod = train_prophet(fb_train)
-    y_hat = predict_horizon(fbmod, horizon=thehorizon)
+    if select_top30:
+    # run functions on top30 (this takes a few minutes)
+        daily30 = daily_df_dict(df, top30)
+        models30 = models_dict(daily30, horiz=prediction_horizon)
+        print_results(models30)
+    else:    # run functions on top6
+        daily6 = daily_df_dict(df, top6)
+        models6 = models_dict(daily6, horiz=prediction_horizon)
+        print_results(models6)
 
-    y_test = fb_test['y'].values
+    
 
-    print("mape FBprophet : ", mape(y_test, y_hat))

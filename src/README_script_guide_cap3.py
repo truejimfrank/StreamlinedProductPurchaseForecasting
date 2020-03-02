@@ -12,7 +12,7 @@ Load events.csv
 Convert to daily purchases DF and save pickle
 Load and join category and parent data
 Save a dfcatparent DF to pickle
-parent2day function for product CAT daily purchases
+parent2day function for product category daily purchases
 
 --- error_split
 contains functions used by other scripts
@@ -20,8 +20,8 @@ error function MAPE
 plottings functions
 
 --- my_fbprophet
-functions for running FB prophet timeseries
-functions for Category MAPE
+PurchaseForecast Class !!
+supporting functions for running PurchaseForecast on data
 script to test the functions
 
 --- my_rnn

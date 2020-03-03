@@ -32,6 +32,11 @@ class PurchaseForecast(object):
         self._shf()
         self._shf_mape()
         self._growth()
+
+    def output_array(self):
+        rr = [self.horizon, self.df_daily, self.model, self.shf_model, self.forecast, self.shf_forecast,
+            self.mape_error, self.abs_error, self.percent_growth, self.low_growth, self.high_growth]
+        return np.array(rr)
     
     def mape(self, y_true, y_pred):
         # mean absolute percent error
@@ -124,6 +129,18 @@ def print_results(models_dict):
         print("percent growth from trend : ", obj.percent_growth, " : low, high -> ",
                                             obj.low_growth, obj.high_growth)
 
+def output_dataframe(models_dict):
+    """outputs dataframe for comparing and graphing forecastmodels"""
+    co = ['horizon', 'df_daily', 'model', 'shf_model', 'forecast', 'shf_forecast',
+            'mape_error', 'abs_error', 'percent_growth', 'low_growth', 'high_growth']
+    key_list = []
+    list_of_rows = []
+    for key, obj in models_dict.items():
+        key_list.append(key)
+        list_of_rows.append(obj.output_array())
+    frame = pd.DataFrame(data=list_of_rows, index=key_list, columns=co)
+    return frame
+
 """ fb forecast columns
     ['ds', 'trend', 'yhat_lower', 'yhat_upper', 'trend_lower',
     'trend_upper', 'additive_terms', 'additive_terms_lower',
@@ -131,25 +148,34 @@ def print_results(models_dict):
     'multiplicative_terms', 'multiplicative_terms_lower',
     'multiplicative_terms_upper', 'yhat']"""
 
+def run_stack(df, horizon=28, the30=True):
+    if the30:
+        parents = select_id_array(df)
+    else:
+        parents = np.array([561, 955, 105, 500, 1095, 805])
+    daily30 = daily_df_dict(df, parents)
+    models30 = models_dict(daily30, horiz=horizon)
+    print_results(models30)
+    return models30
+
 if __name__ == '__main__':
     # this block used for testing
     # open pickled dataframe from data2frame.py
     df = pd.read_pickle('../../data/time_ecom/dfcatparent.pkl', compression='zip')
-    top6 = np.array([561, 955, 105, 500, 1095, 805])
-    top30 = select_id_array(df)
+
     prediction_horizon = 28  #  DAYS
     # choose True here if you want to run full top30 comparison, takes a minute
-    select_top30 = False
+    select_top30 = True
 
     if select_top30:
     # run functions on top30 (this takes a few minutes)
-        daily30 = daily_df_dict(df, top30)
-        models30 = models_dict(daily30, horiz=prediction_horizon)
-        print_results(models30)
+        mod_dict = run_stack(df, horizon=prediction_horizon, the30=True)
+        dfout = output_dataframe(mod_dict)
+        dfout.to_pickle('../../data/time_ecom/dfout30.pkl', compression='zip')
     else:    # run functions on top6
-        daily6 = daily_df_dict(df, top6)
-        models6 = models_dict(daily6, horiz=prediction_horizon)
-        print_results(models6)
+        mod_dict = run_stack(df, horizon=prediction_horizon, the30=False)
+        dfout = output_dataframe(mod_dict)
+        dfout.to_pickle('../../data/time_ecom/dfout6.pkl', compression='zip')
 
     
 

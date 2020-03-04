@@ -44,8 +44,8 @@ class PurchaseForecast(object):
         return round(np.mean(np.abs((y_true - y_pred) / y_true)) * 100., 1)
 
     def _prophet_fit(self, prior=0.05):
-        self.model = Prophet(changepoint_prior_scale=prior)
-        self.shf_model = Prophet(changepoint_prior_scale=prior)
+        self.model = Prophet(changepoint_prior_scale=prior, mcmc_samples=250)
+        self.shf_model = Prophet(changepoint_prior_scale=prior, mcmc_samples=250)
         print(f"start fit shf model parent={self.parent}")
         self.shf_model.fit(self.df_daily[:-self.horizon])
         print(f"start fit full model parent={self.parent}")
@@ -80,16 +80,13 @@ class PurchaseForecast(object):
         self.high_growth = round(((high - start) / start) * 100. , 1)
     # END OF CLASS
 
-def first_test_run(df_daily, thehorizon=28):
-    """code for initial testing"""
-    fb_train, fb_test = simple_splitter(df_daily, test_len=thehorizon)
-    m = Prophet()
-    m.fit(fb_train)
-    dffuture = m.make_future_dataframe(periods=thehorizon)
-    dfforecast = m.predict(dffuture)
-    y_hat = dfforecast.iloc[-thehorizon: , -1].values
-    y_test = fb_test['y'].values
-    print("mape FBprophet : ", mape(y_test, y_hat))
+def all_days2df(df_daily, thehorizon=28):
+    """function to make all days forecast dataframe"""
+    dictionary = {}
+    dictionary[2222] = df_daily  # 2222 placeholder
+    model_dictionary = models_dict(dictionary, horiz=thehorizon)
+    print_results(model_dictionary)
+    return output_dataframe(model_dictionary)
 
 def select_id_array(df, thresh=250):
     """select parentid integers with sufficient
@@ -167,15 +164,20 @@ if __name__ == '__main__':
     # choose True here if you want to run full top30 comparison, takes a minute
     select_top30 = True
 
-    if select_top30:
-    # run functions on top30 (this takes a few minutes)
-        mod_dict = run_stack(df, horizon=prediction_horizon, the30=True)
-        dfout = output_dataframe(mod_dict)
-        dfout.to_pickle('../../data/time_ecom/dfout30.pkl', compression='zip')
-    else:    # run functions on top6
-        mod_dict = run_stack(df, horizon=prediction_horizon, the30=False)
-        dfout = output_dataframe(mod_dict)
-        dfout.to_pickle('../../data/time_ecom/dfout6.pkl', compression='zip')
+    # if select_top30:
+    # # run functions on top30 (this takes a few minutes)
+    #     mod_dict = run_stack(df, horizon=prediction_horizon, the30=True)
+    #     dfout = output_dataframe(mod_dict)
+    #     dfout.to_pickle('../../data/time_ecom/dfout30.pkl', compression='zip')
+    # else:    # run functions on top6
+    #     mod_dict = run_stack(df, horizon=prediction_horizon, the30=False)
+    #     dfout = output_dataframe(mod_dict)
+    #     dfout.to_pickle('../../data/time_ecom/dfout6.pkl', compression='zip')
 
-    
+# output a models forecasts dataframe for the full days
+    dfday = pd.read_pickle('../../data/time_ecom/dfday.pkl')
+    df_forecast = all_days2df(dfday, thehorizon=28)
+    df_forecast.to_pickle('../../data/time_ecom/df_full_forecast.pkl', compression='zip')
+
+
 

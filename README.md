@@ -86,7 +86,7 @@ I would like the forecasts of the tools I work with to actually be accurate and 
 
 <sub><b>Figure: </b> FB Prophet built with the full dataset </sub>
 
-The forecasting tool I used is called [Facebook Prophet](http://facebook.github.io/prophet/). A team at Facebook introduced this tool about 2.5 years ago. I read their technical paper and really liked their approach to forecasting. I liked it so much that I decided to use it for this project. Simply put, the way it works goes like this…  
+The forecasting tool I used is called [Facebook Prophet](http://facebook.github.io/prophet/). A team at Facebook introduced this tool about 2.5 years ago. Upon reading their technical paper, their approach to forecasting really appealled to me. I liked it so much that I decided to use it for this project. Simply put, the way it works goes like this…  
 **Trend + Seasonal Components = Forecast**  
 Based on the amount of variance in the data, confidence intervals are generated. An 80% confidence threshold was used.
 
@@ -102,14 +102,13 @@ An evaluation model was made with only part of the dataset. A holdout of test da
 
 ## LSTM Model
 
-To have another model for comparison, I made an LSTM neural net model with TensorFlow / Keras. I used MAPE (mean absolute percentage error) here during the model evaluation step.
+To have another model for comparison, I made an LSTM neural net model with TensorFlow / Keras. For the evaluation step, I used MAPE (mean absolute percentage error).
 
 ![LSTM Best Forecast](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/rnn_s8_e9_b99_200200drop4_lr.0002.png)
 
 ## Product Category Forecasts
 
-Comparison of the FB Prophet model and the LSTM model was determined on interpretability and the amount of time I spent getting the models to make forecasts.  
-FB Prophet is fast and works well with my data, so I used it going forward.
+Comparison of the FB Prophet model and the LSTM model was determined on interpretability and the amount of time I spent getting the models to make forecasts. FB Prophet is fast and works well with my data, so I used it going forward.
 
 Now I can answer the question posed in the original objective. Additionally, these tools provide context and understanding for interpreting the result.
 
@@ -119,19 +118,19 @@ Now I can answer the question posed in the original objective. Additionally, the
 
 ![Holiday Category](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/for_readme/readme_holiday.png)
 
-<sub><b>Figure: </b> A product category with low growth for comparison </sub>
+<sub><b>Figure: </b> Product category with low growth for comparison </sub>
 
 ## Forecast Wrap Up
 
 These forecast tools are great for visualizing and contextualizing your data.  
 A problem I had to overcome was insufficient data for some of the 236 product categories. I had to select just the models with enough data to make forecasts. In the future, I look forwards to working with larger datasets that would mitigate this issue.
 
-[Jim Frank at LinkedIn](https://www.linkedin.com/in/truejimfrank/)
+### [Jim Frank at LinkedIn](https://www.linkedin.com/in/truejimfrank/)
 
 ## References
 
-[Facebook Prophet](http://facebook.github.io/prophet/)
-[Facebook Prophet Technical Paper](https://peerj.com/preprints/3190/)
-[LSTM Neural Net For Timeseries](https://www.jakob-aungiers.com/articles/a/LSTM-Neural-Network-for-Time-Series-Prediction)
-[LSTM Return Seqeunces](https://machinelearningmastery.com/return-sequences-and-return-states-for-lstms-in-keras/)
-[Retailrocket recommender system dataset](https://www.kaggle.com/retailrocket/ecommerce-dataset)
+[Facebook Prophet](http://facebook.github.io/prophet/)  
+[Facebook Prophet Technical Paper](https://peerj.com/preprints/3190/)  
+[LSTM Neural Net For Timeseries](https://www.jakob-aungiers.com/articles/a/LSTM-Neural-Network-for-Time-Series-Prediction)  
+[LSTM Return Seqeunces](https://machinelearningmastery.com/return-sequences-and-return-states-for-lstms-in-keras/)  
+[Retailrocket recommender system dataset](https://www.kaggle.com/retailrocket/ecommerce-dataset)  

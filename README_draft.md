@@ -72,7 +72,7 @@ It is important to note that daily purchases is simply a count of products sold 
 
 ## Methodology
 
-I would like the forecast outputs of the tools I work with to actually be accurate and insightful. To make sure this happens, I have followed this methodology. All steps are important for reaching the accuracy I desire.
+I would like the forecasts of the tools I work with to actually be accurate and insightful. To make sure this happens, I have followed this methodology. All steps are important for reaching the accuracy I desire.
 
 1. BUILD  
 2. EVALUATE  
@@ -82,8 +82,7 @@ I would like the forecast outputs of the tools I work with to actually be accura
 
 Here’s the first model I built.     
 
-CHANGE LINK
-![FB Prophet full model](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/data_timeseries.png)
+![FB Prophet full model](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/for_readme/readme_fb_prophet.png)
 
 <sub><b>Figure: </b> FB Prophet built with the full dataset </sub>
 
@@ -94,27 +93,42 @@ Based on the amount of variance in the data, confidence intervals are generated.
 
 <sub><b>Figure: </b> Weekly component of the model. Negative values because this component is added to the trend </sub>
 
+![shf fb](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/for_readme/readme_shf_eval.png)
+
+<sub><b>Figure: </b> FB Prophet model evaluation with MAE (mean absolute error) </sub>
+
 ## LSTM Model
 
-To have another model for comparison, I made an LSTM neural net model with TensorFlow / Keras.
+To have another model for comparison, I made an LSTM neural net model with TensorFlow / Keras. I used MAPE (mean absolute percentage error) here.
 
 ![LSTM Initial Forecast](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/RNN_initial_result.png)
 
-![LSTM Best Forecast](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/weekly.png)
+![LSTM Best Forecast](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/rnn_s8_e9_b99_200200drop4_lr.0002.png)
 
 ## Product Category Forecasts
 
-I compared the FB Prophet model and the LSTM model based on there results and the amount of time I spent getting the models to make forecasts.  
+Comparison of the FB Prophet model and the LSTM model was done based on MAE (mean absolute error) and the amount of time I spent getting the models to make forecasts.  
 FB Prophet is fast and works well with my data, so I used it going forward.
 
-![Cherries Category](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/weekly.png)
+Now we can answer the question posed in the original objective. Additionally, these tools provide context and understanding for interpreting the result.
 
-![Holiday Category](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/weekly.png)
+![Cherries Category](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/for_readme/readme_cherries.png)
+
+<sub><b>Figure: </b> Product category with the highest growth forecast </sub>
+
+![Holiday Category](https://github.com/truejimfrank/StreamlinedProductPurchaseForecasting/blob/master/img/for_readme/readme_holiday.png)
+
+<sub><b>Figure: </b> A product category with low growth for comparison </sub>
 
 ## Forecast Wrap Up
 
-Today we've only had time for one cluster model paired with one regression classifier. Thankfully, there are other paths of investigation to choose from in the data science toolbelt.
-
+These forecast tools are great for visualizing and contextualizing your data.  
+A problem I had to overcome was insufficient data for some of the 236 product categories. I had to select just the models with enough data to make forecasts. In the future, I look forwards to working with larger datasets that would mitigate this issue.
 
 ## References
 
+[Facebook Prophet](http://facebook.github.io/prophet/)
+[Facebook Prophet Technical Paper](https://peerj.com/preprints/3190/)
+
+
+[Retailrocket recommender system dataset](https://www.kaggle.com/retailrocket/ecommerce-dataset)

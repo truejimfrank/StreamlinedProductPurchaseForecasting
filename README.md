@@ -1,6 +1,8 @@
 # Webstore Sales Forecasting by Jim Frank
 
-### [Jim Frank at LinkedIn](https://www.linkedin.com/in/truejimfrank/)
+[Project Presentation Slides](https://docs.google.com/presentation/d/1sWtRcTl5WAaV8XP3RzuDTg9hnpZvh6xdJy2QRbGiN00/edit?usp=sharing)
+
+### [Jim Frank on LinkedIn](https://www.linkedin.com/in/truejimfrank/)
 
 ### _Facebook Prophet & LSTM Model Forecasting_  
 
@@ -125,7 +127,7 @@ Now I can answer the question posed in the original objective. Additionally, the
 These forecast tools are great for visualizing and contextualizing your data.  
 A problem I had to overcome was insufficient data for some of the 236 product categories. I had to select just the models with enough data to make forecasts. In the future, I look forwards to working with larger datasets that would mitigate this issue.
 
-### [Jim Frank at LinkedIn](https://www.linkedin.com/in/truejimfrank/)
+### [Jim Frank on LinkedIn](https://www.linkedin.com/in/truejimfrank/)
 
 ## References
 

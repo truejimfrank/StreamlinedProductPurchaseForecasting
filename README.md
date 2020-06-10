@@ -1,6 +1,6 @@
 # Webstore Sales Forecasting by Jim Frank
 
-[Project Presentation Slides](https://docs.google.com/presentation/d/1sWtRcTl5WAaV8XP3RzuDTg9hnpZvh6xdJy2QRbGiN00/edit?usp=sharing)
+### [Project Presentation Slides](https://docs.google.com/presentation/d/1sWtRcTl5WAaV8XP3RzuDTg9hnpZvh6xdJy2QRbGiN00/edit?usp=sharing)
 
 ### [Jim Frank on LinkedIn](https://www.linkedin.com/in/truejimfrank/)
 
